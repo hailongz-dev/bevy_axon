@@ -1,0 +1,26 @@
+[package]
+name = "bevy_axon"
+version = "0.1.0"
+edition = "2021"
+description = "Bevy Axon"
+license = "MIT"
+repository = "https://github.com/hailongz-dev/bevy_axon"
+
+[dependencies]
+bevy = { version = "0.18.0", default-features = false, features = [
+    "bevy_log",
+], optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+memchr = { version = "2", optional = true }
+bevy_renet = { version = "4.0.0", optional = true }
+renet = { version = "2.0.0", optional = true }
+renet_netcode = { version = "2.0.0", optional = true }
+
+[features]
+default = []
+server = ["dep:bevy_renet", "dep:memchr", "dep:bevy"]
+ffi = ["dep:renet", "dep:renet_netcode"]
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
