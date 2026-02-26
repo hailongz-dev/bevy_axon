@@ -2,6 +2,9 @@
 name = "bevy_axon_derive"
 version = "0.1.0"
 edition = "2021"
+description = "Proc macros for bevy_axon"
+license = "MIT"
+repository = "https://github.com/hailongz-dev/bevy_axon"
 
 [lib]
 proc-macro = true
