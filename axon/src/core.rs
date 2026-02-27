@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use memchr::memchr;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::collections::VecDeque;
 
 pub trait AxonObject {
     fn axon_object_type() -> u32;
@@ -22,16 +21,12 @@ pub const ACTION_TYPE_DESPAWN: u8 = 2;
 pub const ACTION_TYPE_CHANGE: u8 = 3;
 pub const ACTION_TYPE_INVOKE: u8 = 4;
 
-pub struct AxonAction {
+#[derive(Event)]
+pub struct AxonActionEvent {
     pub act: u8,
     pub id: u64,
     pub t: u32,
     pub v: Vec<u8>,
-}
-
-#[derive(Default, Resource)]
-pub struct AxonActionQueue {
-    pub deque: VecDeque<AxonAction>,
 }
 
 #[derive(Event)]
@@ -106,7 +101,6 @@ pub struct AxonPlugin;
 impl Plugin for AxonPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<AxonEventInvokeSet>();
-        app.init_resource::<AxonActionQueue>();
     }
 }
 
@@ -171,12 +165,12 @@ pub enum AxonSystemSet {
 
 fn reg_object_add<E: AxonObject + Component>(
     query: Query<Entity, Added<E>>,
-    mut queue: ResMut<AxonActionQueue>,
+    mut commands: Commands<'_, '_>,
 ) {
     for entity in query.iter() {
         let id: u64 = entity.to_bits();
         let t = E::axon_object_type();
-        queue.deque.push_back(AxonAction {
+        commands.trigger(AxonActionEvent {
             act: ACTION_TYPE_SPAWN,
             id,
             t,
@@ -188,11 +182,11 @@ fn reg_object_add<E: AxonObject + Component>(
 
 fn reg_object_removed<E: AxonObject + Component>(
     mut removed: RemovedComponents<E>,
-    mut queue: ResMut<AxonActionQueue>,
+    mut commands: Commands<'_, '_>,
 ) {
     for entity in removed.read() {
         let id: u64 = entity.to_bits();
-        queue.deque.push_back(AxonAction {
+        commands.trigger(AxonActionEvent {
             act: ACTION_TYPE_DESPAWN,
             id,
             t: E::axon_object_type(),
@@ -204,17 +198,18 @@ fn reg_object_removed<E: AxonObject + Component>(
 
 fn reg_variant_change<V: AxonVariant + Component + Serialize>(
     changed: Query<(Entity, &V), Changed<V>>,
-    mut queue: ResMut<AxonActionQueue>,
+    mut commands: Commands<'_, '_>,
 ) {
     for (entity, variant) in changed.iter() {
         let id: u64 = entity.to_bits();
         let t = V::axon_variant_type();
         let j = serde_json::to_vec(variant).unwrap();
-        queue.deque.push_back(AxonAction {
+        commands.trigger(AxonActionEvent {
             act: ACTION_TYPE_CHANGE,
             id,
             t,
             v: j,
         });
+        println!("change: {}, {}", id, t);
     }
 }

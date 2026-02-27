@@ -53,8 +53,8 @@ impl Plugin for AxonServerPlugin {
         app.init_resource::<AxonServerClientSet>();
         app.init_resource::<AxonServerSnapshot>();
         app.add_systems(PreUpdate, server_axon_system);
-        app.add_systems(PostUpdate, server_axon_action_system);
         app.add_observer(server_axon_event_system);
+        app.add_observer(server_axon_action_system);
     }
 }
 
@@ -116,49 +116,58 @@ fn server_axon_system(
 }
 
 fn server_axon_action_system(
-    mut queue: ResMut<AxonActionQueue>,
+    event: On<AxonActionEvent>,
     mut srv: ResMut<RenetServer>,
     mut snapshot: ResMut<AxonServerSnapshot>,
 ) {
-    while let Some(action) = queue.deque.pop_front() {
-        match action.act {
-            ACTION_TYPE_SPAWN => {
-                snapshot.buf.clear();
-                srv.broadcast_message(
-                    DefaultChannel::ReliableOrdered,
-                    format!("{},{},{}\n\n", ACTION_TYPE_SPAWN, action.id, action.t).into_bytes(),
-                );
-            }
-            ACTION_TYPE_DESPAWN => {
-                let id = action.id;
-                snapshot.buf.clear();
-                srv.broadcast_message(
-                    DefaultChannel::ReliableOrdered,
-                    format!("{},{}\n\n", ACTION_TYPE_DESPAWN, id).into_bytes(),
-                );
-            }
-            ACTION_TYPE_CHANGE => {
-                let id = action.id;
-                let t = action.t;
-                let v = action.v;
-                snapshot.buf.clear();
-                write!(snapshot.buf, "{},{},{}\n", ACTION_TYPE_CHANGE, id, t).unwrap();
-                snapshot.buf.extend_from_slice(&v);
-                snapshot.buf.push(b'\n');
-                srv.broadcast_message(DefaultChannel::ReliableOrdered, snapshot.buf.clone());
-            }
-            ACTION_TYPE_INVOKE => {
-                let id = action.id;
-                let t = action.t;
-                let v = action.v;
-                snapshot.buf.clear();
-                write!(snapshot.buf, "{},{},{}\n", ACTION_TYPE_INVOKE, id, t).unwrap();
-                snapshot.buf.extend_from_slice(&v);
-                snapshot.buf.push(b'\n');
-                srv.broadcast_message(DefaultChannel::ReliableOrdered, snapshot.buf.clone());
-            }
-            _ => {}
+    let action = event.event();
+    println!("action: {}", action.act);
+    match action.act {
+        ACTION_TYPE_SPAWN => {
+            snapshot.entities.insert(
+                action.id,
+                AxonServerEntitySnapshot {
+                    t: action.t,
+                    m: HashMap::new(),
+                },
+            );
+            srv.broadcast_message(
+                DefaultChannel::ReliableOrdered,
+                format!("{},{},{}\n\n", ACTION_TYPE_SPAWN, action.id, action.t).into_bytes(),
+            );
         }
+        ACTION_TYPE_DESPAWN => {
+            let id = action.id;
+            snapshot.entities.remove(&id);
+            srv.broadcast_message(
+                DefaultChannel::ReliableOrdered,
+                format!("{},{}\n\n", ACTION_TYPE_DESPAWN, id).into_bytes(),
+            );
+        }
+        ACTION_TYPE_CHANGE => {
+            let id = action.id;
+            let t = action.t;
+            let v = &action.v;
+            if let Some(m) = snapshot.entities.get_mut(&id) {
+                m.m.insert(t, v.to_vec());
+            }
+            snapshot.buf.clear();
+            write!(snapshot.buf, "{},{},{}\n", ACTION_TYPE_CHANGE, id, t).unwrap();
+            snapshot.buf.extend_from_slice(&v);
+            snapshot.buf.push(b'\n');
+            srv.broadcast_message(DefaultChannel::ReliableOrdered, snapshot.buf.clone());
+        }
+        ACTION_TYPE_INVOKE => {
+            let id = action.id;
+            let t = action.t;
+            let v = &action.v;
+            snapshot.buf.clear();
+            write!(snapshot.buf, "{},{},{}\n", ACTION_TYPE_INVOKE, id, t).unwrap();
+            snapshot.buf.extend_from_slice(&v);
+            snapshot.buf.push(b'\n');
+            srv.broadcast_message(DefaultChannel::ReliableOrdered, snapshot.buf.clone());
+        }
+        _ => {}
     }
 }
 
