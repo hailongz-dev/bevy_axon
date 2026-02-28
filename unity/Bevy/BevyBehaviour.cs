@@ -1,60 +1,45 @@
 using System;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
 using UnityEngine;
 
 namespace Bevy
 {
-    public abstract class BevyBehaviour : MonoBehaviour
+    public class BevyBehaviour : MonoBehaviour, IBevyBehaviour
     {
-        private static readonly Dictionary<Type, Dictionary<uint, FieldInfo>> TypeVariantCache = new();
-
-        private Dictionary<uint, FieldInfo> _variantSet;
-
-        protected virtual void Awake()
+        public virtual void SetValue(uint t, object data)
         {
-            InitVariantSet();
-        }
-
-        private void InitVariantSet()
-        {
-            var type = GetType();
-
-            if (TypeVariantCache.TryGetValue(type, out _variantSet)) return;
-            _variantSet = new Dictionary<uint, FieldInfo>();
-
-            foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public |
-                                                 BindingFlags.NonPublic))
+            if (data == null) return;
+            var type = data.GetType();
+            foreach (var field in GetType()
+                         .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+                                    BindingFlags.SetField))
             {
-                var attr = field.GetCustomAttribute<BevyVariantAttribute>();
-                if (attr != null)
-                {
-                    _variantSet[attr.VariantType] = field;
-                }
+                if (field.FieldType != type) continue;
+                field.SetValue(this, data);
             }
 
-            TypeVariantCache[type] = _variantSet;
+            foreach (var field in GetType()
+                         .GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+                                        BindingFlags.SetProperty))
+            {
+                if (field.PropertyType != type) continue;
+                field.SetValue(this, data);
+            }
         }
 
-        public void SetValue(uint type, ArraySegment<byte> rawData)
+        public virtual void Invoke(uint t, object data)
         {
-            if (_variantSet == null || !_variantSet.TryGetValue(type, out var field)) return;
+            if (data == null) return;
             try
             {
-                field.SetValue(this, JsonUtility.FromJson(Encoding.UTF8.GetString(rawData), field.FieldType));
+                var m = GetType().GetMethod("Invoke", new[] { data.GetType() });
+                if (m == null) return;
+                m.Invoke(this, new[] { data });
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Debug.LogException(e);
+                // ignore
             }
-        }
-
-        public void Invoke(object data)
-        {
-            var s = GetComponentInParent<BevyClient>();
-            if (!s) return;
-            s.Invoke(data);
         }
     }
 }

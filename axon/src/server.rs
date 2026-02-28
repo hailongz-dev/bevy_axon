@@ -76,12 +76,7 @@ fn server_axon_event_system(
     match event.0 {
         ServerEvent::ClientConnected { client_id } => {
             println!("Client {} connected", client_id);
-            let entity = commands
-                .spawn(AxonClient {
-                    id: client_id,
-                    connected: true,
-                })
-                .id();
+            let entity = commands.spawn(AxonClient { id: client_id }).id();
             client_set.map.insert(client_id, entity);
             let data = snapshot.snapshot().to_vec();
             if !data.is_empty() {
@@ -121,7 +116,6 @@ fn server_axon_action_system(
     mut snapshot: ResMut<AxonServerSnapshot>,
 ) {
     let action = event.event();
-    println!("action: {}", action.act);
     match action.act {
         ACTION_TYPE_SPAWN => {
             snapshot.entities.insert(
@@ -165,7 +159,15 @@ fn server_axon_action_system(
             write!(snapshot.buf, "{},{},{}\n", ACTION_TYPE_INVOKE, id, t).unwrap();
             snapshot.buf.extend_from_slice(&v);
             snapshot.buf.push(b'\n');
-            srv.broadcast_message(DefaultChannel::ReliableOrdered, snapshot.buf.clone());
+            if action.client_id == 0 {
+                srv.broadcast_message(DefaultChannel::ReliableOrdered, snapshot.buf.clone());
+            } else {
+                srv.send_message(
+                    action.client_id,
+                    DefaultChannel::ReliableOrdered,
+                    snapshot.buf.clone(),
+                );
+            }
         }
         _ => {}
     }

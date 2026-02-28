@@ -27,6 +27,7 @@ pub struct AxonActionEvent {
     pub id: u64,
     pub t: u32,
     pub v: Vec<u8>,
+    pub client_id: u64,
 }
 
 #[derive(Event)]
@@ -35,7 +36,6 @@ pub struct AxonExitEvent;
 #[derive(Component)]
 pub struct AxonClient {
     pub id: u64,
-    pub connected: bool,
 }
 
 pub type AxonEventInvoke = fn(&[u8], &mut Commands<'_, '_>);
@@ -101,6 +101,15 @@ pub struct AxonPlugin;
 impl Plugin for AxonPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<AxonEventInvokeSet>();
+        app.configure_sets(
+            PostUpdate,
+            (
+                AxonSystemSet::Spawn,
+                AxonSystemSet::Change,
+                AxonSystemSet::Despawn,
+            )
+                .chain(), // 关键
+        );
     }
 }
 
@@ -108,6 +117,13 @@ pub trait AppAxon {
     fn add_axon_event<T: AxonEvent + Event>(&mut self);
     fn add_axon_object<T: AxonObject + Component>(&mut self);
     fn add_axon_variant<T: AxonVariant + Component + Serialize>(&mut self);
+    fn send_axon_client_event<T: AxonEvent + Serialize>(
+        &mut self,
+        id: u64,
+        event: &T,
+        client_id: u64,
+    );
+    fn broadcast_axon_client_event<T: AxonEvent + Serialize>(&mut self, id: u64, event: &T);
 }
 
 impl AppAxon for App {
@@ -121,22 +137,45 @@ impl AppAxon for App {
     }
     fn add_axon_object<T: AxonObject + Component>(&mut self) {
         self.add_systems(
-            Update,
+            PostUpdate,
             (
                 reg_object_add::<T>.in_set(AxonSystemSet::Spawn),
-                reg_object_removed::<T>
-                    .in_set(AxonSystemSet::Despawn)
-                    .after(AxonSystemSet::Change),
+                reg_object_removed::<T>.in_set(AxonSystemSet::Despawn),
             ),
         );
     }
     fn add_axon_variant<T: AxonVariant + Component + Serialize>(&mut self) {
         self.add_systems(
-            Update,
-            reg_variant_change::<T>
-                .in_set(AxonSystemSet::Change)
-                .after(AxonSystemSet::Spawn),
+            PostUpdate,
+            reg_variant_change::<T>.in_set(AxonSystemSet::Change),
         );
+    }
+    fn send_axon_client_event<T: AxonEvent + Serialize>(
+        &mut self,
+        id: u64,
+        event: &T,
+        client_id: u64,
+    ) {
+        let type_id = T::axon_event_type();
+        let j = serde_json::to_vec(event).unwrap();
+        self.world_mut().commands().trigger(AxonActionEvent {
+            act: ACTION_TYPE_INVOKE,
+            id: id,
+            t: type_id,
+            v: j,
+            client_id: client_id,
+        });
+    }
+    fn broadcast_axon_client_event<T: AxonEvent + Serialize>(&mut self, id: u64, event: &T) {
+        let type_id = T::axon_event_type();
+        let j = serde_json::to_vec(event).unwrap();
+        self.world_mut().commands().trigger(AxonActionEvent {
+            act: ACTION_TYPE_INVOKE,
+            id: id,
+            t: type_id,
+            v: j,
+            client_id: 0,
+        });
     }
 }
 
@@ -175,6 +214,7 @@ fn reg_object_add<E: AxonObject + Component>(
             id,
             t,
             v: Vec::new(),
+            client_id: 0,
         });
         println!("spawn: {}, {}", id, t);
     }
@@ -191,6 +231,7 @@ fn reg_object_removed<E: AxonObject + Component>(
             id,
             t: E::axon_object_type(),
             v: Vec::new(),
+            client_id: 0,
         });
         println!("despawn: {}, {}", id, E::axon_object_type());
     }
@@ -209,6 +250,7 @@ fn reg_variant_change<V: AxonVariant + Component + Serialize>(
             id,
             t,
             v: j,
+            client_id: 0,
         });
         println!("change: {}, {}", id, t);
     }

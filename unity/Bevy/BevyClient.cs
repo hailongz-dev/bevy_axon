@@ -11,6 +11,18 @@ namespace Bevy
 {
     public class BevyClient : MonoBehaviour
     {
+        private static readonly Dictionary<uint, Type> TypeSet = new();
+
+        public static void AddType(uint t, Type type)
+        {
+            TypeSet.Add(t, type);
+        }
+
+        public static bool TryGetType(uint t, out Type type)
+        {
+            return TypeSet.TryGetValue(t, out type);
+        }
+
         private const uint ActionTypeSpawn = 1;
         private const uint ActionTypeDespawn = 2;
         private const uint ActionTypeChange = 3;
@@ -18,16 +30,12 @@ namespace Bevy
 
         private readonly Dictionary<ulong, BevyObject> _objectSet = new();
 
-        [FormerlySerializedAs("Prefabs")] public List<PrefabItem> prefabs = new();
-
-        [Serializable]
-        public class PrefabItem
-        {
-            public uint type;
-            public GameObject prefab;
-        }
+        [FormerlySerializedAs("Prefabs")] public List<BevyObject> prefabs = new();
 
         private IntPtr _client;
+        private readonly ulong _clientId = (ulong)DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+        public ulong ClientId => _clientId;
 
         public string GetErrorMessage()
         {
@@ -45,12 +53,12 @@ namespace Bevy
 
             if (string.IsNullOrEmpty(addr)) return;
             var cAddr = Marshal.StringToHGlobalAnsi(addr);
-            _client = bevy_axon_ffi_create(cAddr);
+            _client = bevy_axon_ffi_create(cAddr, _clientId);
             Marshal.FreeHGlobal(cAddr);
 
             foreach (var v in _objectSet.Values)
             {
-                Destroy(v);
+                Destroy(v.gameObject);
             }
 
             _objectSet.Clear();
@@ -112,9 +120,9 @@ namespace Bevy
                         continue;
                     case ActionTypeSpawn:
                     {
-                        var item = prefabs.FirstOrDefault(v => v.type == vs[2]);
-                        if (item == null || !item.prefab) continue;
-                        var v = Instantiate(item.prefab, transform);
+                        var item = prefabs.FirstOrDefault(v => v.typeId == vs[2]);
+                        if (!item) continue;
+                        var v = Instantiate(item.gameObject, transform);
                         var s = v.GetComponent<BevyObject>();
                         if (!s)
                         {
@@ -128,6 +136,7 @@ namespace Bevy
                         tr.localScale = Vector3.one;
                         tr.localRotation = Quaternion.identity;
                         _objectSet[s.Id] = s;
+                        Debug.Log($"spawn {vs[1]}");
                         break;
                     }
                     case ActionTypeDespawn when vs.Length < 2:
@@ -135,7 +144,8 @@ namespace Bevy
                     case ActionTypeDespawn:
                     {
                         if (!_objectSet.Remove(vs[1], out var v)) continue;
-                        Destroy(v);
+                        Destroy(v.gameObject);
+                        Debug.Log($"despawn {vs[1]}");
                         break;
                     }
                     case ActionTypeChange when vs.Length < 3:
@@ -143,9 +153,20 @@ namespace Bevy
                     case ActionTypeChange:
                     {
                         if (!_objectSet.TryGetValue(vs[1], out var v)) continue;
-                        v.SetValue((uint)vs[2], value);
+                        if (!TypeSet.TryGetValue((uint)vs[2], out var t)) continue;
+                        try
+                        {
+                            v.SetValue((uint)vs[2], JsonUtility.FromJson(Encoding.UTF8.GetString(value), t));
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError(e);
+                        }
+
                         break;
                     }
+                    case ActionTypeInvoke:
+                        break;
                 }
             }
         }
@@ -196,7 +217,7 @@ namespace Bevy
 #else
         [DllImport("bevy_axon", CallingConvention = CallingConvention.Cdecl)]
 #endif
-        private static extern IntPtr bevy_axon_ffi_create(IntPtr addr);
+        private static extern IntPtr bevy_axon_ffi_create(IntPtr addr, ulong clientId);
 
 #if (UNITY_WEBGL || UNITY_IPHONE) && !UNITY_EDITOR
         [DllImport("__Internal")]

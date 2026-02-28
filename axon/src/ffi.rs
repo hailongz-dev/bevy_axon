@@ -1,6 +1,6 @@
 use renet::{ConnectionConfig, DefaultChannel, RenetClient};
 use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
-use std::ffi::{c_char, c_float, c_int, c_uchar, CStr};
+use std::ffi::{c_char, c_float, c_int, c_uchar, CStr, c_ulong};
 use std::net::UdpSocket;
 use std::ptr::addr_of_mut;
 use std::time::SystemTime;
@@ -60,7 +60,7 @@ pub extern "C" fn bevy_axon_ffi_errmsg() -> *const c_char {
 /// addr: 服务器地址字符串（以 null 结尾的 C 字符串）
 /// 失败返回 null (0)
 #[no_mangle]
-pub extern "C" fn bevy_axon_ffi_create(addr: *const c_char) -> *mut Game {
+pub extern "C" fn bevy_axon_ffi_create(addr: *const c_char, client_id: c_ulong) -> *mut Game {
     if addr.is_null() {
         let msg = "[bevy_axon_ffi_create] error: addr is null";
         println!("{}", msg);
@@ -72,10 +72,7 @@ pub extern "C" fn bevy_axon_ffi_create(addr: *const c_char) -> *mut Game {
         match CStr::from_ptr(addr).to_str() {
             Ok(s) => s,
             Err(e) => {
-                let msg = format!(
-                    "[bevy_axon_ffi_create] error: invalid utf8 string: {:?}",
-                    e
-                );
+                let msg = format!("[bevy_axon_ffi_create] error: invalid utf8 string: {:?}", e);
                 println!("{}", msg);
                 set_error(&msg);
                 return std::ptr::null_mut();
@@ -133,7 +130,7 @@ pub extern "C" fn bevy_axon_ffi_create(addr: *const c_char) -> *mut Game {
 
     let authentication = ClientAuthentication::Unsecure {
         server_addr,
-        client_id: current_time.as_millis() as u64,
+        client_id: client_id as u64,
         user_data: None,
         protocol_id: 0,
     };

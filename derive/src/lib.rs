@@ -13,7 +13,7 @@ pub fn axon_object_derive(input: TokenStream) -> TokenStream {
         None => {
             return syn::Error::new_spanned(
                 name,
-                "RpcObjectType requires #[type_id = <u32>] attribute",
+                "AxonObject requires #[type_id = <u32>] attribute",
             )
             .to_compile_error()
             .into();

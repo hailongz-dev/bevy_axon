@@ -3,21 +3,21 @@ use std::fs;
 use std::path::Path;
 use syn::{parse_file, Attribute, Item, Lit, Meta, MetaNameValue};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Metadata {
     pub o: Vec<Info>,
     pub v: Vec<Info>,
     pub e: Vec<Info>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Info {
     pub i: u32,
     pub n: String,
     pub p: Vec<FieldInfo>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FieldInfo {
     pub n: String,
     pub t: String,
@@ -116,11 +116,13 @@ fn parse_rust_file(content: &str, metadata: &mut Metadata) {
             };
 
             if has_axon_object {
-                metadata.o.push(info);
-            } else if has_axon_variant {
-                metadata.v.push(info);
-            } else if has_axon_event {
-                metadata.e.push(info);
+                metadata.o.push(info.clone());
+            }
+            if has_axon_variant {
+                metadata.v.push(info.clone());
+            }
+            if has_axon_event {
+                metadata.e.push(info.clone());
             }
         }
     }
@@ -178,14 +180,22 @@ fn extract_fields(fields: &syn::Fields, all_items: &[&Item]) -> Vec<FieldInfo> {
                     .map(|i| i.to_string())
                     .unwrap_or_default();
                 let (ty, nested_fields) = format_type(&field.ty, all_items);
-                result.push(FieldInfo { n: name, t: ty, p: nested_fields });
+                result.push(FieldInfo {
+                    n: name,
+                    t: ty,
+                    p: nested_fields,
+                });
             }
         }
         syn::Fields::Unnamed(unnamed) => {
             for (i, field) in unnamed.unnamed.iter().enumerate() {
                 let name = format!("_{}", i);
                 let (ty, nested_fields) = format_type(&field.ty, all_items);
-                result.push(FieldInfo { n: name, t: ty, p: nested_fields });
+                result.push(FieldInfo {
+                    n: name,
+                    t: ty,
+                    p: nested_fields,
+                });
             }
         }
         syn::Fields::Unit => {}
@@ -198,15 +208,19 @@ fn format_type(ty: &syn::Type, all_items: &[&Item]) -> (String, Vec<FieldInfo>) 
     match ty {
         syn::Type::Path(type_path) => {
             let path = &type_path.path;
-            let type_name = path.segments.last()
+            let type_name = path
+                .segments
+                .last()
                 .map(|s| s.ident.to_string())
                 .unwrap_or_default();
-            
+
             let last_segment = path.segments.last();
-            
+
             if let Some(segment) = last_segment {
                 if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                    let inner_types: Vec<String> = args.args.iter()
+                    let inner_types: Vec<String> = args
+                        .args
+                        .iter()
                         .filter_map(|arg| {
                             if let syn::GenericArgument::Type(inner_ty) = arg {
                                 Some(get_type_name(inner_ty))
@@ -215,7 +229,7 @@ fn format_type(ty: &syn::Type, all_items: &[&Item]) -> (String, Vec<FieldInfo>) 
                             }
                         })
                         .collect();
-                    
+
                     if type_name == "Vec" && inner_types.len() == 1 {
                         let inner_type_name = &inner_types[0];
                         let nested_fields = find_struct_fields(inner_type_name, all_items);
@@ -230,19 +244,20 @@ fn format_type(ty: &syn::Type, all_items: &[&Item]) -> (String, Vec<FieldInfo>) 
                     }
                 }
             }
-            
+
             let nested_fields = find_struct_fields(&type_name, all_items);
             (type_name, nested_fields)
         }
         syn::Type::Array(type_array) => {
             let (inner_type, nested_fields) = format_type(&type_array.elem, all_items);
             let len = &type_array.len;
-            (format!("{}[{}]", inner_type, quote::quote!(#len)), nested_fields)
+            (
+                format!("{}[{}]", inner_type, quote::quote!(#len)),
+                nested_fields,
+            )
         }
         syn::Type::Tuple(type_tuple) => {
-            let types: Vec<String> = type_tuple.elems.iter()
-                .map(|t| get_type_name(t))
-                .collect();
+            let types: Vec<String> = type_tuple.elems.iter().map(|t| get_type_name(t)).collect();
             (format!("({})", types.join(", ")), Vec::new())
         }
         syn::Type::Reference(type_ref) => {
@@ -262,27 +277,30 @@ fn format_type(ty: &syn::Type, all_items: &[&Item]) -> (String, Vec<FieldInfo>) 
 
 fn get_type_name(ty: &syn::Type) -> String {
     match ty {
-        syn::Type::Path(type_path) => {
-            type_path.path.segments.last()
-                .map(|s| {
-                    let name = s.ident.to_string();
-                    if let syn::PathArguments::AngleBracketed(args) = &s.arguments {
-                        let inner: Vec<String> = args.args.iter()
-                            .filter_map(|arg| {
-                                if let syn::GenericArgument::Type(inner_ty) = arg {
-                                    Some(get_type_name(inner_ty))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect();
-                        format!("{}<{}>", name, inner.join(", "))
-                    } else {
-                        name
-                    }
-                })
-                .unwrap_or_default()
-        }
+        syn::Type::Path(type_path) => type_path
+            .path
+            .segments
+            .last()
+            .map(|s| {
+                let name = s.ident.to_string();
+                if let syn::PathArguments::AngleBracketed(args) = &s.arguments {
+                    let inner: Vec<String> = args
+                        .args
+                        .iter()
+                        .filter_map(|arg| {
+                            if let syn::GenericArgument::Type(inner_ty) = arg {
+                                Some(get_type_name(inner_ty))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+                    format!("{}<{}>", name, inner.join(", "))
+                } else {
+                    name
+                }
+            })
+            .unwrap_or_default(),
         _ => quote::quote!(#ty).to_string(),
     }
 }

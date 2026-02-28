@@ -1,0 +1,22 @@
+[package]
+name = "bevy_axon_graphics"
+version = "0.1.1"
+edition = "2021"
+description = "Bevy Axon Graphics"
+license = "MIT"
+repository = "https://github.com/hailongz-dev/bevy_axon"
+build = "src/build.rs"
+
+[dependencies]
+bevy = { version = "0.18.0", default-features = false, features = [
+    "bevy_log",
+    "debug",
+] }
+bevy_renet = { version = "4.0.0" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bevy_axon = { version = "0.1.1", features = ["server"] }
+bevy_axon_derive = { version = "0.1.1" }
+
+[build-dependencies]
+bevy_axon_cli = { version = "0.1.0" }

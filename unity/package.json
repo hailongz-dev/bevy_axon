@@ -1,7 +1,7 @@
 {
   "name": "org.bevy.axon",
   "displayName": "Bevy Axon",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "unity": "2022.1",
   "keywords": []
 }

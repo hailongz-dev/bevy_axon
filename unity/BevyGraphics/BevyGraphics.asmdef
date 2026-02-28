@@ -1,0 +1,16 @@
+{
+    "name": "BevyGraphics",
+    "rootNamespace": "",
+    "references": [
+        "GUID:33c364e4a66f449382bbcd5b611bbe5f"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
