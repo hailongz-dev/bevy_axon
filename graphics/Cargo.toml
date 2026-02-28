@@ -1,6 +1,6 @@
 [package]
 name = "bevy_axon_graphics"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Bevy Axon Graphics"
 license = "MIT"
@@ -19,4 +19,9 @@ bevy_axon = { version = "0.1.1", features = ["server"] }
 bevy_axon_derive = { version = "0.1.1" }
 
 [build-dependencies]
-bevy_axon_cli = { version = "0.1.0" }
+bevy_axon_cli = { version = "0.1.0", optional = true }
+
+[features]
+default = []
+generate-metadata = ["bevy_axon_cli"]
+
