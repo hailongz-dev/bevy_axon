@@ -185,8 +185,6 @@ dependencies = [
 [[package]]
 name = "bevy_axon_derive"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed737c5f9d3765f81b691a02719364220ed6ca7ce5ef904366331d92341659c7"
 dependencies = [
  "proc-macro2",
  "quote",

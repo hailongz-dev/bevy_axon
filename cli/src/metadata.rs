@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
-use syn::{parse_file, Attribute, Item, Lit, Meta, MetaNameValue};
+use std::path::{Path, PathBuf};
+use syn::{parse_file, Attribute, Item, Meta};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Metadata {
@@ -37,13 +37,16 @@ pub fn run(src: &str, dst: &str) {
         std::process::exit(1);
     }
 
+    // Find project root and read crate name from Cargo.toml
+    let (crate_name, project_root) = find_crate_info(src_path);
+
     let mut metadata = Metadata {
         o: Vec::new(),
         v: Vec::new(),
         e: Vec::new(),
     };
 
-    if let Err(e) = collect_files(src_path, &mut metadata) {
+    if let Err(e) = collect_files(src_path, &mut metadata, &crate_name, &project_root) {
         eprintln!("Error collecting files: {}", e);
         std::process::exit(1);
     }
@@ -66,7 +69,45 @@ pub fn run(src: &str, dst: &str) {
     }
 }
 
-fn collect_files(dir: &Path, metadata: &mut Metadata) -> Result<(), Box<dyn std::error::Error>> {
+fn find_crate_info(start_path: &Path) -> (String, PathBuf) {
+    let mut current = start_path;
+    loop {
+        let cargo_toml = current.join("Cargo.toml");
+        if cargo_toml.exists() {
+            if let Ok(content) = fs::read_to_string(&cargo_toml) {
+                if let Some(name) = parse_cargo_toml_name(&content) {
+                    return (name, current.to_path_buf());
+                }
+            }
+        }
+        match current.parent() {
+            Some(parent) => current = parent,
+            None => break,
+        }
+    }
+    ("unknown".to_string(), start_path.to_path_buf())
+}
+
+fn parse_cargo_toml_name(content: &str) -> Option<String> {
+    for line in content.lines() {
+        let line = line.trim();
+        if line.starts_with("name") && line.contains('=') {
+            let parts: Vec<&str> = line.split('=').collect();
+            if parts.len() >= 2 {
+                let name = parts[1].trim().trim_matches('"').trim_matches('\'');
+                return Some(name.to_string());
+            }
+        }
+    }
+    None
+}
+
+fn collect_files(
+    dir: &Path,
+    metadata: &mut Metadata,
+    crate_name: &str,
+    project_root: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -75,18 +116,50 @@ fn collect_files(dir: &Path, metadata: &mut Metadata) -> Result<(), Box<dyn std:
         if metadata_entry.is_file() {
             if path.extension().map(|e| e == "rs").unwrap_or(false) {
                 if let Ok(content) = fs::read_to_string(&path) {
-                    parse_rust_file(&content, metadata);
+                    let module_path = build_module_path(&path, project_root, crate_name);
+                    parse_rust_file(&content, metadata, &module_path);
                 }
             }
         } else if metadata_entry.is_dir() {
-            collect_files(&path, metadata)?;
+            collect_files(&path, metadata, crate_name, project_root)?;
         }
     }
 
     Ok(())
 }
 
-fn parse_rust_file(content: &str, metadata: &mut Metadata) {
+fn build_module_path(file_path: &Path, project_root: &Path, crate_name: &str) -> String {
+    let src_dir = project_root.join("src");
+    if let Ok(relative) = file_path.strip_prefix(&src_dir) {
+        let mut parts: Vec<String> = vec![crate_name.to_string()];
+
+        // Get path components (excluding the file name)
+        let parent = relative.parent();
+        if let Some(parent) = parent {
+            for component in parent.components() {
+                if let Some(s) = component.as_os_str().to_str() {
+                    parts.push(s.to_string());
+                }
+            }
+        }
+
+        // Get file stem (without .rs extension)
+        if let Some(stem) = file_path.file_stem() {
+            if let Some(s) = stem.to_str() {
+                // Skip "mod" or "lib" or "main" as they represent the module root
+                if s != "mod" && s != "lib" && s != "main" {
+                    parts.push(s.to_string());
+                }
+            }
+        }
+
+        parts.join("::")
+    } else {
+        crate_name.to_string()
+    }
+}
+
+fn parse_rust_file(content: &str, metadata: &mut Metadata, module_path: &str) {
     let file = match parse_file(content) {
         Ok(f) => f,
         Err(_) => return,
@@ -106,12 +179,19 @@ fn parse_rust_file(content: &str, metadata: &mut Metadata) {
                 continue;
             }
 
-            let type_id = extract_type_id(&item_struct.attrs);
+            // Build full qualified name: crate_name::module::StructName
+            let full_name = if module_path.is_empty() {
+                struct_name.clone()
+            } else {
+                format!("{}::{}", module_path, struct_name)
+            };
+
+            let type_id = compute_type_id(&full_name);
             let fields = extract_fields(&item_struct.fields, &items);
 
             let info = Info {
                 i: type_id,
-                n: struct_name,
+                n: full_name,
                 p: fields,
             };
 
@@ -149,23 +229,15 @@ fn has_derive(attrs: &[Attribute], derive_name: &str) -> bool {
     false
 }
 
-fn extract_type_id(attrs: &[Attribute]) -> u32 {
-    for attr in attrs {
-        if attr.path().is_ident("type_id") {
-            if let Meta::NameValue(MetaNameValue {
-                value: syn::Expr::Lit(expr_lit),
-                ..
-            }) = &attr.meta
-            {
-                if let Lit::Int(lit_int) = &expr_lit.lit {
-                    if let Ok(id) = lit_int.base10_parse::<u32>() {
-                        return id;
-                    }
-                }
-            }
-        }
+fn compute_type_id(name: &str) -> u32 {
+    let bytes = name.as_bytes();
+    let mut hash: u32 = 5381;
+    let mut i = 0;
+    while i < bytes.len() {
+        hash = hash.wrapping_mul(33).wrapping_add(bytes[i] as u32);
+        i += 1;
     }
-    0
+    hash
 }
 
 fn extract_fields(fields: &syn::Fields, all_items: &[&Item]) -> Vec<FieldInfo> {

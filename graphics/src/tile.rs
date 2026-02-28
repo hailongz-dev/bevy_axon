@@ -16,7 +16,6 @@ pub struct Layer {
 }
 
 #[derive(Component, Serialize, Deserialize, AxonVariant, Default, Debug, Clone)]
-#[type_id = 1200]
 pub struct Tilemap {
     pub width: i32,
     pub height: i32,

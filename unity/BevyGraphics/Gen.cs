@@ -1,47 +1,47 @@
 namespace BevyGraphics {
-	[Bevy.BevyVariant(1000)]
+	[Bevy.BevyVariant(2236330566)]
 	[System.Serializable]
 	public class Position {
-		public const uint TypeId = 1000;
+		public const uint TypeId = 2236330566;
 		[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void Initialize() {
-			Bevy.BevyClient.AddType(1000,typeof(Position));
+			Bevy.BevyClient.AddType(2236330566,typeof(Position));
 		}
 		public float x;
 		public float y;
 		public float z;
 	}
-	[Bevy.BevyVariant(1001)]
+	[Bevy.BevyVariant(1603518625)]
 	[System.Serializable]
 	public class Rotation {
-		public const uint TypeId = 1001;
+		public const uint TypeId = 1603518625;
 		[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void Initialize() {
-			Bevy.BevyClient.AddType(1001,typeof(Rotation));
+			Bevy.BevyClient.AddType(1603518625,typeof(Rotation));
 		}
 		public float x;
 		public float y;
 		public float z;
 	}
-	[Bevy.BevyVariant(1002)]
+	[Bevy.BevyVariant(3503847833)]
 	[System.Serializable]
 	public class Scale {
-		public const uint TypeId = 1002;
+		public const uint TypeId = 3503847833;
 		[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void Initialize() {
-			Bevy.BevyClient.AddType(1002,typeof(Scale));
+			Bevy.BevyClient.AddType(3503847833,typeof(Scale));
 		}
 		public float x;
 		public float y;
 		public float z;
 	}
-	[Bevy.BevyVariant(1300)]
+	[Bevy.BevyVariant(974863171)]
 	[System.Serializable]
 	public class Page {
-		public const uint TypeId = 1300;
+		public const uint TypeId = 974863171;
 		[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void Initialize() {
-			Bevy.BevyClient.AddType(1300,typeof(Page));
+			Bevy.BevyClient.AddType(974863171,typeof(Page));
 		}
 		public PageValue[] p;
 		[System.Serializable]
@@ -50,13 +50,13 @@ namespace BevyGraphics {
 			public string v;
 		}
 	}
-	[Bevy.BevyVariant(1200)]
+	[Bevy.BevyVariant(3288927234)]
 	[System.Serializable]
 	public class Tilemap {
-		public const uint TypeId = 1200;
+		public const uint TypeId = 3288927234;
 		[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void Initialize() {
-			Bevy.BevyClient.AddType(1200,typeof(Tilemap));
+			Bevy.BevyClient.AddType(3288927234,typeof(Tilemap));
 		}
 		public int width;
 		public int height;
@@ -73,24 +73,24 @@ namespace BevyGraphics {
 			}
 		}
 	}
-	[Bevy.BevyVariant(1100)]
+	[Bevy.BevyVariant(3683072690)]
 	[System.Serializable]
 	public class Skin {
-		public const uint TypeId = 1100;
+		public const uint TypeId = 3683072690;
 		[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void Initialize() {
-			Bevy.BevyClient.AddType(1100,typeof(Skin));
+			Bevy.BevyClient.AddType(3683072690,typeof(Skin));
 		}
 		public uint id;
 		public string[] state;
 	}
-	[Bevy.BevyEvent(1301)]
+	[Bevy.BevyEvent(80005349)]
 	[System.Serializable]
 	public class PageEvent {
-		public const uint TypeId = 1301;
+		public const uint TypeId = 80005349;
 		[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void Initialize() {
-			Bevy.BevyClient.AddType(1301,typeof(PageEvent));
+			Bevy.BevyClient.AddType(80005349,typeof(PageEvent));
 		}
 		public ulong client_id;
 		public ulong id;

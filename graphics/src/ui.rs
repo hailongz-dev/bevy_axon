@@ -4,13 +4,11 @@ use bevy_axon_derive::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Component, Serialize, Deserialize, AxonVariant, Default, Debug, Clone)]
-#[type_id = 1300]
 pub struct Page {
     pub p: Vec<PageValue>,
 }
 
 #[derive(Serialize, Deserialize, AxonEvent, Event, Default, Debug, Clone)]
-#[type_id = 1301]
 pub struct PageEvent {
     pub client_id: u64,
     pub id: u64,

@@ -4,7 +4,6 @@ use bevy_axon::core::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Component, Serialize, Deserialize, AxonVariant, Default, Debug)]
-#[type_id = 1000]
 pub struct Position {
     pub x: f32,
     pub y: f32,
@@ -12,7 +11,6 @@ pub struct Position {
 }
 
 #[derive(Component, Serialize, Deserialize, AxonVariant, Default, Debug)]
-#[type_id = 1001]
 pub struct Rotation {
     pub x: f32,
     pub y: f32,
@@ -20,7 +18,6 @@ pub struct Rotation {
 }
 
 #[derive(Component, Serialize, Deserialize, AxonVariant, Default, Debug)]
-#[type_id = 1002]
 pub struct Scale {
     pub x: f32,
     pub y: f32,

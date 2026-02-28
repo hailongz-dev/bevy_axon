@@ -10,6 +10,7 @@ fn main() {
 
 }
 
+
 #[cfg(not(feature = "generate-metadata"))]
 fn main() {
 }

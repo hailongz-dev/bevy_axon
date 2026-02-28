@@ -3,22 +3,20 @@ use bevy::prelude::*;
 use bevy_axon::core::*;
 use bevy_axon::server::*;
 use bevy_axon_derive::*;
-use bevy_renet::RenetServerPlugin;
 use bevy_renet::netcode::NetcodeServerPlugin;
+use bevy_renet::RenetServerPlugin;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::time::Duration;
 
 #[derive(Component, AxonObject)]
-#[type_id = 1]
 #[allow(dead_code)]
 struct Player {
     id: u64,
 }
 
 #[derive(Component, AxonVariant, Serialize)]
-#[type_id = 2]
 struct Position {
     x: f32,
     y: f32,
@@ -26,7 +24,6 @@ struct Position {
 }
 
 #[derive(Event, AxonEvent, Deserialize)]
-#[type_id = 3]
 #[allow(dead_code)]
 struct MoveEvent {
     x: f32,
@@ -96,7 +93,7 @@ fn main() {
 
     app.init_resource::<ClientSet>();
     app.add_systems(Update, (client_join, client_leave));
-    app.add_systems(Update, test);  
+    app.add_systems(Update, test);
 
     app.start_server(addr);
 

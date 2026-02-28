@@ -2,8 +2,8 @@
   "o": [],
   "v": [
     {
-      "i": 1000,
-      "n": "Position",
+      "i": 2236330566,
+      "n": "bevy_axon_graphics::core::Position",
       "p": [
         {
           "n": "x",
@@ -23,8 +23,8 @@
       ]
     },
     {
-      "i": 1001,
-      "n": "Rotation",
+      "i": 1603518625,
+      "n": "bevy_axon_graphics::core::Rotation",
       "p": [
         {
           "n": "x",
@@ -44,8 +44,8 @@
       ]
     },
     {
-      "i": 1002,
-      "n": "Scale",
+      "i": 3503847833,
+      "n": "bevy_axon_graphics::core::Scale",
       "p": [
         {
           "n": "x",
@@ -65,8 +65,8 @@
       ]
     },
     {
-      "i": 1300,
-      "n": "Page",
+      "i": 974863171,
+      "n": "bevy_axon_graphics::ui::Page",
       "p": [
         {
           "n": "p",
@@ -87,8 +87,8 @@
       ]
     },
     {
-      "i": 1200,
-      "n": "Tilemap",
+      "i": 3288927234,
+      "n": "bevy_axon_graphics::tile::Tilemap",
       "p": [
         {
           "n": "width",
@@ -135,8 +135,8 @@
       ]
     },
     {
-      "i": 1100,
-      "n": "Skin",
+      "i": 3683072690,
+      "n": "bevy_axon_graphics::skin::Skin",
       "p": [
         {
           "n": "id",
@@ -153,8 +153,8 @@
   ],
   "e": [
     {
-      "i": 1301,
-      "n": "PageEvent",
+      "i": 80005349,
+      "n": "bevy_axon_graphics::ui::PageEvent",
       "p": [
         {
           "n": "client_id",

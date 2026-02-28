@@ -32,7 +32,7 @@ namespace BevyEditor
                 {
                     _indexSet[i.i] = _items.Count;
                     _items.Add(i);
-                    titles.Add(new GUIContent($"{i.n} ({i.i})"));
+                    titles.Add(new GUIContent($"{i.n}"));
                 }
             }
 

@@ -107,14 +107,15 @@ namespace BevyEditor
 
         private static void GenClass(Meta.MetaInfo info, StringBuilder sb, string prefix)
         {
+            var name = info.n.Split("::")[^1];
             sb.Append($"{prefix}[System.Serializable]\n");
-            sb.Append($"{prefix}public class {info.n} {{\n");
+            sb.Append($"{prefix}public class {name} {{\n");
             sb.Append($"{prefix}\tpublic const uint TypeId = {info.i};\n");
 
             sb.Append(
                 $"{prefix}\t[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]\n");
             sb.Append($"{prefix}\tprivate static void Initialize() {{\n");
-            sb.Append($"{prefix}\t\tBevy.BevyClient.AddType({info.i},typeof({info.n}));\n");
+            sb.Append($"{prefix}\t\tBevy.BevyClient.AddType({info.i},typeof({name}));\n");
             sb.Append($"{prefix}\t}}\n");
 
             foreach (var fd in info.p)

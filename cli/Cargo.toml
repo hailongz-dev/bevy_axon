@@ -1,6 +1,6 @@
 [package]
 name = "bevy_axon_cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "CLI tool for bevy_axon metadata extraction"
 license = "MIT OR Apache-2.0"
