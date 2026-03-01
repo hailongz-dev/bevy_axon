@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -23,10 +24,10 @@ namespace Bevy
             return TypeSet.TryGetValue(t, out type);
         }
 
-        private const uint ActionTypeSpawn = 1;
-        private const uint ActionTypeDespawn = 2;
-        private const uint ActionTypeChange = 3;
-        private const uint ActionTypeInvoke = 4;
+        private const byte ActionTypeSpawn = 1;
+        private const byte ActionTypeDespawn = 2;
+        private const byte ActionTypeChange = 3;
+        private const byte ActionTypeInvoke = 4;
 
         private readonly Dictionary<ulong, BevyObject> _objectSet = new();
 
@@ -62,6 +63,8 @@ namespace Bevy
             }
 
             _objectSet.Clear();
+
+            Debug.Log($"Connecting to {addr} , ClientId: {_clientId}");
         }
 
         public void Disconnect()
@@ -101,73 +104,74 @@ namespace Bevy
         // ReSharper disable Unity.PerformanceAnalysis
         private void OnRawData(ArraySegment<byte> data)
         {
-            var i = 0;
-            var n = data.Count;
-            while (i < n)
+            var sb = new SbinReader(data);
+            try
             {
-                var end = Find(data, i, 10);
-                if (end == -1) return;
-                var vs = Encoding.UTF8.GetString(data[i..end]).Split(",").Select(ulong.Parse).ToArray();
-                i = end + 1;
-                end = Find(data, i, 10);
-                if (end == -1) return;
-                var value = data[i..end];
-                i = end + 1;
-                switch (vs[0])
+                while (true)
                 {
-                    case ActionTypeSpawn when vs.Length < 3:
-                    case ActionTypeSpawn when _objectSet.ContainsKey(vs[1]):
-                        continue;
-                    case ActionTypeSpawn:
+                    var act = sb.ReadU8();
+                    var id = sb.ReadU64();
+                    var t = sb.ReadU32();
+                    var d = sb.ReadBytes();
+
+                    switch (act)
                     {
-                        var item = prefabs.FirstOrDefault(v => v.typeId == vs[2]);
-                        if (!item) continue;
-                        var v = Instantiate(item.gameObject, transform);
-                        var s = v.GetComponent<BevyObject>();
-                        if (!s)
-                        {
-                            Destroy(v);
+                        case ActionTypeSpawn when _objectSet.ContainsKey(id):
                             continue;
-                        }
-
-                        s.Id = vs[1];
-                        var tr = v.transform;
-                        tr.localPosition = Vector3.zero;
-                        tr.localScale = Vector3.one;
-                        tr.localRotation = Quaternion.identity;
-                        _objectSet[s.Id] = s;
-                        Debug.Log($"spawn {vs[1]}");
-                        break;
-                    }
-                    case ActionTypeDespawn when vs.Length < 2:
-                        continue;
-                    case ActionTypeDespawn:
-                    {
-                        if (!_objectSet.Remove(vs[1], out var v)) continue;
-                        Destroy(v.gameObject);
-                        Debug.Log($"despawn {vs[1]}");
-                        break;
-                    }
-                    case ActionTypeChange when vs.Length < 3:
-                        continue;
-                    case ActionTypeChange:
-                    {
-                        if (!_objectSet.TryGetValue(vs[1], out var v)) continue;
-                        if (!TypeSet.TryGetValue((uint)vs[2], out var t)) continue;
-                        try
+                        case ActionTypeSpawn:
                         {
-                            v.SetValue((uint)vs[2], JsonUtility.FromJson(Encoding.UTF8.GetString(value), t));
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.LogError(e);
-                        }
+                            var item = prefabs.FirstOrDefault(v => v.typeId == t);
+                            if (!item) continue;
+                            var v = Instantiate(item.gameObject, transform);
+                            var s = v.GetComponent<BevyObject>();
+                            if (!s)
+                            {
+                                Destroy(v);
+                                continue;
+                            }
 
-                        break;
+                            s.Id = id;
+                            var tr = v.transform;
+                            tr.localPosition = Vector3.zero;
+                            tr.localScale = Vector3.one;
+                            tr.localRotation = Quaternion.identity;
+                            _objectSet[s.Id] = s;
+                            Debug.Log($"spawn {id}");
+                            break;
+                        }
+                        case ActionTypeDespawn:
+                        {
+                            if (!_objectSet.Remove(id, out var v)) continue;
+                            Destroy(v.gameObject);
+                            Debug.Log($"despawn {id}");
+                            break;
+                        }
+                        case ActionTypeChange:
+                        {
+                            if (!_objectSet.TryGetValue(id, out var v)) continue;
+                            if (!TypeSet.TryGetValue(t, out var tt)) continue;
+                            try
+                            {
+                                v.SetValue(t, new SbinReader(d).ReadSerializable(tt));
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.LogError(e);
+                            }
+
+                            break;
+                        }
+                        case ActionTypeInvoke:
+                            break;
                     }
-                    case ActionTypeInvoke:
-                        break;
                 }
+            }
+            catch (EndOfStreamException)
+            {
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e);
             }
         }
 
@@ -176,7 +180,7 @@ namespace Bevy
             if (_client == IntPtr.Zero) return;
             if (_invoke.Length > 0)
             {
-                var handle = GCHandle.Alloc(_invoke.Buffer, GCHandleType.Pinned);
+                var handle = GCHandle.Alloc(_invoke.GetBuffer(), GCHandleType.Pinned);
                 try
                 {
                     bevy_axon_ffi_invoke(_client, handle.AddrOfPinnedObject(), _invoke.Length);
@@ -186,22 +190,33 @@ namespace Bevy
                     handle.Free();
                 }
 
-                _invoke.Clear();
+                _invoke.SetLength(0);
+                _invoke.Position = 0;
             }
 
             var raw = bevy_axon_ffi_update(_client, Time.deltaTime, out var len);
             if (raw == IntPtr.Zero || len <= 0) return;
-            _raw.EnsureCapacity((int)len);
-            Marshal.Copy(raw, _raw.Buffer, 0, (int)len);
-            OnRawData(new ArraySegment<byte>(_raw.Buffer, 0, (int)len));
+            _raw.SetLength((int)len);
+            Marshal.Copy(raw, _raw.GetBuffer(), 0, (int)len);
+            OnRawData(new ArraySegment<byte>(_raw.GetBuffer(), 0, (int)len));
         }
 
-        private readonly NativeBuffer _raw = new(20480);
-        private readonly NativeBuffer _invoke = new(20480);
+        private readonly MemoryStream _raw = new(20480);
+        private readonly MemoryStream _invoke = new(20480);
+        private readonly MemoryStream _value = new(20480);
 
         public void Invoke(uint type, object data)
         {
-            _invoke.Write(Encoding.UTF8.GetBytes($"{ActionTypeInvoke},${type}\n${JsonUtility.ToJson(data)}\n"));
+            var sb = new SbinWriter(_invoke);
+            sb.WriteU8(ActionTypeInvoke);
+            sb.WriteU64(0);
+            sb.WriteU32(type);
+
+            _value.SetLength(0);
+            _value.Position = 0;
+            var s = new SbinWriter(_value);
+            s.WriteSerializable(data);
+            sb.WriteBytes(s.ToArray());
         }
 
         public void Invoke(object data)

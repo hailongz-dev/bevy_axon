@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use memchr::memchr;
 use serde::Serialize;
 use std::collections::HashMap;
 
@@ -47,50 +46,33 @@ pub struct AxonEventInvokeSet {
 
 impl AxonEventInvokeSet {
     pub fn invoke(&self, raw: &[u8], commands: &mut Commands<'_, '_>) {
-        let mut i = 0;
-
-        while i < raw.len() {
-            // 找第一行
-            let Some(header_end_rel) = memchr(b'\n', &raw[i..]) else {
-                break;
-            };
-            let header_end = i + header_end_rel;
-
-            let header = &raw[i..header_end];
-            i = header_end + 1;
-
-            // 解析 header: "type,t"
-            let mut split = header.split(|&b| b == b',');
-
-            let Some(action_bytes) = split.next() else {
-                continue;
-            };
-            let Some(t_bytes) = split.next() else {
-                continue;
-            };
-
-            // 直接从 bytes 解析整数（避免 UTF8 + split）
-            let action = parse_u64(action_bytes) as u8;
-            let t = parse_u32(t_bytes);
-
-            if action != ACTION_TYPE_INVOKE {
-                // 跳过下一行
-                if let Some(data_end_rel) = memchr(b'\n', &raw[i..]) {
-                    i += data_end_rel + 1;
+        let mut dec = crate::sbin::SbinDeserializer::from_bytes(raw);
+        loop {
+            let act: Result<u8, _> = serde::Deserialize::deserialize(&mut dec);
+            if let Ok(act) = act {
+                let id: Result<u64, _> = serde::Deserialize::deserialize(&mut dec);
+                if let Ok(_) = id {
+                    let t: Result<u32, _> = serde::Deserialize::deserialize(&mut dec);
+                    if let Ok(t) = t {
+                        let v: Result<Vec<u8>, _> = serde::Deserialize::deserialize(&mut dec);
+                        if let Ok(v) = v {
+                            if act == ACTION_TYPE_INVOKE {
+                                if let Some(invoke) = self.map.get(&t) {
+                                    invoke(&v, commands);
+                                }
+                            }
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
                 }
-                continue;
-            }
-
-            // 找数据行
-            let Some(data_end_rel) = memchr(b'\n', &raw[i..]) else {
+            } else {
                 break;
-            };
-            let data_end = i + data_end_rel;
-
-            if let Some(invoke) = self.map.get(&t) {
-                invoke(&raw[i..data_end], commands);
             }
-            i = data_end + 1;
         }
     }
 }
@@ -157,7 +139,7 @@ impl AppAxon for App {
         client_id: u64,
     ) {
         let type_id = T::axon_event_type();
-        let j = serde_json::to_vec(event).unwrap();
+        let j = crate::sbin::to_bytes(event).unwrap();
         self.world_mut().commands().trigger(AxonActionEvent {
             act: ACTION_TYPE_INVOKE,
             id: id,
@@ -168,7 +150,7 @@ impl AppAxon for App {
     }
     fn broadcast_axon_client_event<T: AxonEvent + Serialize>(&mut self, id: u64, event: &T) {
         let type_id = T::axon_event_type();
-        let j = serde_json::to_vec(event).unwrap();
+        let j = crate::sbin::to_bytes(event).unwrap();
         self.world_mut().commands().trigger(AxonActionEvent {
             act: ACTION_TYPE_INVOKE,
             id: id,
@@ -244,7 +226,7 @@ fn reg_variant_change<V: AxonVariant + Component + Serialize>(
     for (entity, variant) in changed.iter() {
         let id: u64 = entity.to_bits();
         let t = V::axon_variant_type();
-        let j = serde_json::to_vec(variant).unwrap();
+        let j = crate::sbin::to_bytes(variant).unwrap();
         commands.trigger(AxonActionEvent {
             act: ACTION_TYPE_CHANGE,
             id,

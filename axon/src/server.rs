@@ -1,10 +1,11 @@
 use crate::core::*;
+use crate::sbin::SbinSerializer;
 use bevy::prelude::*;
 use bevy_renet::netcode::{NetcodeServerTransport, ServerAuthentication, ServerConfig};
 use bevy_renet::renet::{ConnectionConfig, DefaultChannel, ServerEvent};
 use bevy_renet::*;
+use serde::Serializer;
 use std::collections::HashMap;
-use std::io::Write;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::SystemTime;
 
@@ -21,27 +22,26 @@ struct AxonServerEntitySnapshot {
 
 #[derive(Resource, Default)]
 pub struct AxonServerSnapshot {
-    buf: Vec<u8>,
     entities: HashMap<u64, AxonServerEntitySnapshot>,
 }
 
 impl AxonServerSnapshot {
-    fn snapshot(&mut self) -> &[u8] {
-        self.buf.clear();
+    fn snapshot(&mut self) -> Vec<u8> {
+        let mut s = SbinSerializer::new();
         for (id, entity) in self.entities.iter() {
-            write!(
-                &mut self.buf,
-                "{},{},{}\n\n",
-                ACTION_TYPE_SPAWN, id, entity.t
-            )
-            .unwrap();
+            s.serialize_u8(ACTION_TYPE_SPAWN).unwrap();
+            s.serialize_u64(*id).unwrap();
+            s.serialize_u32(entity.t).unwrap();
+            s.serialize_bytes(&[]).unwrap();
+
             for (t, variant) in entity.m.iter() {
-                writeln!(&mut self.buf, "{},{},{}", ACTION_TYPE_CHANGE, id, t).unwrap();
-                self.buf.extend_from_slice(variant);
-                self.buf.push(b'\n');
+                s.serialize_u8(ACTION_TYPE_CHANGE).unwrap();
+                s.serialize_u64(*id).unwrap();
+                s.serialize_u32(*t).unwrap();
+                s.serialize_bytes(variant).unwrap();
             }
         }
-        &self.buf
+        s.into_vec()
     }
 }
 
@@ -78,9 +78,9 @@ fn server_axon_event_system(
             println!("Client {} connected", client_id);
             let entity = commands.spawn(AxonClient { id: client_id }).id();
             client_set.map.insert(client_id, entity);
-            let data = snapshot.snapshot().to_vec();
+            let data = snapshot.snapshot();
             if !data.is_empty() {
-                srv.send_message(client_id, DefaultChannel::ReliableOrdered, data.clone());
+                srv.send_message(client_id, DefaultChannel::ReliableOrdered, data);
             }
         }
         ServerEvent::ClientDisconnected { client_id, reason } => {
@@ -125,18 +125,21 @@ fn server_axon_action_system(
                     m: HashMap::new(),
                 },
             );
-            srv.broadcast_message(
-                DefaultChannel::ReliableOrdered,
-                format!("{},{},{}\n\n", ACTION_TYPE_SPAWN, action.id, action.t).into_bytes(),
-            );
+            let mut s = SbinSerializer::new();
+            s.serialize_u8(ACTION_TYPE_SPAWN).unwrap();
+            s.serialize_u64(action.id).unwrap();
+            s.serialize_u32(action.t).unwrap();
+            s.serialize_bytes(&[]).unwrap();
+            srv.broadcast_message(DefaultChannel::ReliableOrdered, s.into_vec());
         }
         ACTION_TYPE_DESPAWN => {
-            let id = action.id;
-            snapshot.entities.remove(&id);
-            srv.broadcast_message(
-                DefaultChannel::ReliableOrdered,
-                format!("{},{}\n\n", ACTION_TYPE_DESPAWN, id).into_bytes(),
-            );
+            snapshot.entities.remove(&action.id);
+            let mut s = SbinSerializer::new();
+            s.serialize_u8(ACTION_TYPE_DESPAWN).unwrap();
+            s.serialize_u64(action.id).unwrap();
+            s.serialize_u32(action.t).unwrap();
+            s.serialize_bytes(&[]).unwrap();
+            srv.broadcast_message(DefaultChannel::ReliableOrdered, s.into_vec());
         }
         ACTION_TYPE_CHANGE => {
             let id = action.id;
@@ -145,27 +148,27 @@ fn server_axon_action_system(
             if let Some(m) = snapshot.entities.get_mut(&id) {
                 m.m.insert(t, v.to_vec());
             }
-            snapshot.buf.clear();
-            write!(snapshot.buf, "{},{},{}\n", ACTION_TYPE_CHANGE, id, t).unwrap();
-            snapshot.buf.extend_from_slice(&v);
-            snapshot.buf.push(b'\n');
-            srv.broadcast_message(DefaultChannel::ReliableOrdered, snapshot.buf.clone());
+            let mut s = SbinSerializer::new();
+            s.serialize_u8(ACTION_TYPE_CHANGE).unwrap();
+            s.serialize_u64(action.id).unwrap();
+            s.serialize_u32(action.t).unwrap();
+            s.serialize_bytes(v).unwrap();
+            srv.broadcast_message(DefaultChannel::ReliableOrdered, s.into_vec());
         }
         ACTION_TYPE_INVOKE => {
-            let id = action.id;
-            let t = action.t;
             let v = &action.v;
-            snapshot.buf.clear();
-            write!(snapshot.buf, "{},{},{}\n", ACTION_TYPE_INVOKE, id, t).unwrap();
-            snapshot.buf.extend_from_slice(&v);
-            snapshot.buf.push(b'\n');
+            let mut s = SbinSerializer::new();
+            s.serialize_u8(ACTION_TYPE_INVOKE).unwrap();
+            s.serialize_u64(action.id).unwrap();
+            s.serialize_u32(action.t).unwrap();
+            s.serialize_bytes(v).unwrap();
             if action.client_id == 0 {
-                srv.broadcast_message(DefaultChannel::ReliableOrdered, snapshot.buf.clone());
+                srv.broadcast_message(DefaultChannel::ReliableOrdered, s.into_vec());
             } else {
                 srv.send_message(
                     action.client_id,
                     DefaultChannel::ReliableOrdered,
-                    snapshot.buf.clone(),
+                    s.into_vec(),
                 );
             }
         }

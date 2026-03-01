@@ -11,7 +11,6 @@ bevy = { version = "0.18.0", default-features = false, features = [
     "bevy_log",
 ], optional = true }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 memchr = { version = "2", optional = true }
 bevy_renet = { version = "4.0.0", optional = true }
 renet = { version = "2.0.0", optional = true }
@@ -22,6 +21,7 @@ bevy_axon_derive = { path = "../derive", optional = true }
 default = []
 server = ["dep:bevy_renet", "dep:memchr", "dep:bevy"]
 ffi = ["dep:renet", "dep:renet_netcode"]
+sbin = []
 
 [lib]
 crate-type = ["staticlib", "cdylib", "rlib"]

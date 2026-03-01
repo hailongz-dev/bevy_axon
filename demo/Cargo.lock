@@ -176,7 +176,6 @@ dependencies = [
  "bevy_renet",
  "memchr",
  "serde",
- "serde_json",
 ]
 
 [[package]]

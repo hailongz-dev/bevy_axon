@@ -1,10 +1,33 @@
 use renet::{ConnectionConfig, DefaultChannel, RenetClient};
 use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
+use serde::Deserialize;
+use serde_bytes::ByteBuf;
 use std::net::UdpSocket;
 use std::time::{Duration, Instant, SystemTime};
 
 fn on_raw_data(bytes: &[u8]) {
-    print!("{}", std::str::from_utf8(bytes).unwrap());
+    println!("raw data: {:?}", bytes.len());
+    let mut deserializer = bevy_axon::sbin::SbinDeserializer::from_bytes(bytes);
+    loop {
+        let act:Result<u8, _> = Deserialize::deserialize(&mut deserializer);
+        if let Ok(act) = act {
+            println!("act: {:?}", act);
+            let id:Result<u64, _> = Deserialize::deserialize(&mut deserializer);
+            if let Ok(id) = id {
+                println!("id: {:?}", id);
+                let t:Result<u32, _> = Deserialize::deserialize(&mut deserializer);
+                if let Ok(t) = t {
+                    println!("t: {:?}", t);
+                    let data:Result<ByteBuf, _> = Deserialize::deserialize(&mut deserializer);
+                    if let Ok(data) = data {
+                        println!("data: {:?}", data.len());
+                    }
+                }
+            }
+        } else {
+            break;
+        }
+    }
 }
 
 pub fn run(addr: &str) {

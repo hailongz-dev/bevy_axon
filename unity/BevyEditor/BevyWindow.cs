@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
@@ -16,6 +13,12 @@ namespace BevyEditor
             var window = (BevyWindow)GetWindow(typeof(BevyWindow));
             window.titleContent = new GUIContent("Bevy");
             window.Show();
+        }
+        
+        [MenuItem("Window/Run Sbin Tests")]
+        private static void RunTests()
+        {
+            Bevy.SbinExtensions.RunTests();
         }
 
         private Vector2 _scrollPos;
@@ -110,7 +113,6 @@ namespace BevyEditor
             var name = info.n.Split("::")[^1];
             sb.Append($"{prefix}[System.Serializable]\n");
             sb.Append($"{prefix}public class {name} {{\n");
-            sb.Append($"{prefix}\tpublic const uint TypeId = {info.i};\n");
 
             sb.Append(
                 $"{prefix}\t[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]\n");
