@@ -231,7 +231,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_axon_cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "proc-macro2",
@@ -241,7 +241,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
- "serde_sbin 0.1.1",
+ "serde_sbin 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn",
 ]
 
