@@ -185,6 +185,8 @@ dependencies = [
 [[package]]
 name = "bevy_axon_derive"
 version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4954b9d4bc1da0d641be70aa53ea107b510dfca107f029c6fad6b021921b8c44"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1532,6 +1534,8 @@ dependencies = [
 [[package]]
 name = "serde_sbin"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "538a24184fe7a22201e22bbdf64654e5ec8df9d632a4be4208c40141316a58be"
 dependencies = [
  "serde",
 ]

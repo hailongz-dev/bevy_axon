@@ -176,7 +176,7 @@ dependencies = [
  "bevy_renet",
  "serde",
  "serde_bytes",
- "serde_sbin",
+ "serde_sbin 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -893,7 +893,7 @@ dependencies = [
  "bevy_renet",
  "rand 0.8.5",
  "serde",
- "serde_sbin",
+ "serde_sbin 0.1.1",
 ]
 
 [[package]]
@@ -1563,6 +1563,15 @@ dependencies = [
 [[package]]
 name = "serde_sbin"
 version = "0.1.1"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "serde_sbin"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "538a24184fe7a22201e22bbdf64654e5ec8df9d632a4be4208c40141316a58be"
 dependencies = [
  "serde",
 ]
