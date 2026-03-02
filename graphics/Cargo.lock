@@ -220,7 +220,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_axon"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bevy",
  "bevy_renet",
@@ -1667,7 +1667,7 @@ dependencies = [
 
 [[package]]
 name = "serde_sbin"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
 ]
