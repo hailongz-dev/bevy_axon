@@ -4,5 +4,3 @@ pub mod ffi;
 pub mod core;
 #[cfg(feature = "server")]
 pub mod server;
-#[cfg(any(feature = "server", feature = "sbin"))]
-pub mod sbin;

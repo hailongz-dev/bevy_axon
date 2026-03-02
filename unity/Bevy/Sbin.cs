@@ -2,8 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
+using UnityEngine;
 
 namespace Bevy
 {
@@ -323,10 +325,10 @@ namespace Bevy
         /// </summary>
         public SbinType ReadType()
         {
-            var type = (SbinType)ReadByte();
-            if ((byte)type > 27)
+            var type = ReadByte();
+            if (type > (byte)SbinType.End)
                 throw new InvalidDataException($"Invalid type: {(byte)type}");
-            return type;
+            return (SbinType)type;
         }
 
         /// <summary>
@@ -341,10 +343,23 @@ namespace Bevy
 
 
         /// <summary>
+        /// 读取类型标记但不移动位置
+        /// </summary>
+        public SbinType PeekType()
+        {
+            var type = PeekByte();
+            if (type > (byte)SbinType.End)
+                throw new InvalidDataException($"Invalid type: {(byte)type}");
+            return (SbinType)type;
+        }
+
+
+        /// <summary>
         /// 读取指定长度的字节数组
         /// </summary>
         private byte[] ReadBytes(int length)
         {
+            if (length == 0) return Array.Empty<byte>();
             if (_position + length > _count)
                 throw new EndOfStreamException("Unexpected end of stream");
             var result = new byte[length];
@@ -1180,11 +1195,15 @@ namespace Bevy
         private static object ReadArray(SbinReader reader, Type arrayType)
         {
             var elementType = arrayType.GetElementType();
-            var type = reader.ReadType();
+            var type = reader.PeekType();
 
             // 优化格式数组
             if (type == SbinType.Bytes && elementType == typeof(byte))
+            {
                 return reader.ReadBytes();
+            }
+
+            type = reader.ReadType();
 
             // 动态数组格式
             if (type != SbinType.Array)

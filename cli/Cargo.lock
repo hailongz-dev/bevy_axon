@@ -63,17 +63,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_axon"
-version = "0.1.1"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "bevy_axon_cli"
 version = "0.1.1"
 dependencies = [
- "bevy_axon",
  "clap",
  "proc-macro2",
  "quote",
@@ -82,6 +74,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
+ "serde_sbin",
  "syn",
 ]
 
@@ -403,6 +396,13 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "serde_sbin"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

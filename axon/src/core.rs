@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use serde::Serialize;
+use serde_bytes::ByteBuf;
 use std::collections::HashMap;
 
 pub trait AxonObject {
@@ -46,7 +47,7 @@ pub struct AxonEventInvokeSet {
 
 impl AxonEventInvokeSet {
     pub fn invoke(&self, raw: &[u8], commands: &mut Commands<'_, '_>) {
-        let mut dec = crate::sbin::SbinDeserializer::from_bytes(raw);
+        let mut dec = serde_sbin::SbinDeserializer::from_bytes(raw);
         loop {
             let act: Result<u8, _> = serde::Deserialize::deserialize(&mut dec);
             if let Ok(act) = act {
@@ -54,11 +55,11 @@ impl AxonEventInvokeSet {
                 if let Ok(_) = id {
                     let t: Result<u32, _> = serde::Deserialize::deserialize(&mut dec);
                     if let Ok(t) = t {
-                        let v: Result<Vec<u8>, _> = serde::Deserialize::deserialize(&mut dec);
-                        if let Ok(v) = v {
+                        let v: Result<ByteBuf, _> = serde::Deserialize::deserialize(&mut dec);
+                        if let Ok(vv) = v {
                             if act == ACTION_TYPE_INVOKE {
                                 if let Some(invoke) = self.map.get(&t) {
-                                    invoke(&v, commands);
+                                    invoke(&vv.into_vec(), commands);
                                 }
                             }
                         } else {
@@ -111,6 +112,7 @@ pub trait AppAxon {
 impl AppAxon for App {
     fn add_axon_event<T: AxonEvent + Event>(&mut self) {
         let type_id = T::axon_event_type();
+        // println!("add_axon_event: {:?}", type_id);
         let invoke = T::axon_event_invoke as AxonEventInvoke;
         self.world_mut()
             .resource_mut::<AxonEventInvokeSet>()
@@ -139,7 +141,7 @@ impl AppAxon for App {
         client_id: u64,
     ) {
         let type_id = T::axon_event_type();
-        let j = crate::sbin::to_bytes(event).unwrap();
+        let j = serde_sbin::to_bytes(event).unwrap();
         self.world_mut().commands().trigger(AxonActionEvent {
             act: ACTION_TYPE_INVOKE,
             id: id,
@@ -150,7 +152,7 @@ impl AppAxon for App {
     }
     fn broadcast_axon_client_event<T: AxonEvent + Serialize>(&mut self, id: u64, event: &T) {
         let type_id = T::axon_event_type();
-        let j = crate::sbin::to_bytes(event).unwrap();
+        let j = serde_sbin::to_bytes(event).unwrap();
         self.world_mut().commands().trigger(AxonActionEvent {
             act: ACTION_TYPE_INVOKE,
             id: id,
@@ -198,7 +200,7 @@ fn reg_object_add<E: AxonObject + Component>(
             v: Vec::new(),
             client_id: 0,
         });
-        println!("spawn: {}, {}", id, t);
+        // println!("spawn: {}, {}", id, t);
     }
 }
 
@@ -215,7 +217,7 @@ fn reg_object_removed<E: AxonObject + Component>(
             v: Vec::new(),
             client_id: 0,
         });
-        println!("despawn: {}, {}", id, E::axon_object_type());
+        // println!("despawn: {}, {}", id, E::axon_object_type());
     }
 }
 
@@ -226,7 +228,7 @@ fn reg_variant_change<V: AxonVariant + Component + Serialize>(
     for (entity, variant) in changed.iter() {
         let id: u64 = entity.to_bits();
         let t = V::axon_variant_type();
-        let j = crate::sbin::to_bytes(variant).unwrap();
+        let j = serde_sbin::to_bytes(variant).unwrap();
         commands.trigger(AxonActionEvent {
             act: ACTION_TYPE_CHANGE,
             id,
@@ -234,6 +236,6 @@ fn reg_variant_change<V: AxonVariant + Component + Serialize>(
             v: j,
             client_id: 0,
         });
-        println!("change: {}, {}", id, t);
+        // println!("change: {}, {}", id, t);
     }
 }

@@ -224,15 +224,15 @@ version = "0.1.1"
 dependencies = [
  "bevy",
  "bevy_renet",
- "memchr",
  "serde",
+ "serde_bytes",
+ "serde_sbin",
 ]
 
 [[package]]
 name = "bevy_axon_cli"
 version = "0.1.1"
 dependencies = [
- "bevy_axon",
  "clap",
  "proc-macro2",
  "quote",
@@ -241,12 +241,13 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
+ "serde_sbin",
  "syn",
 ]
 
 [[package]]
 name = "bevy_axon_derive"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -263,7 +264,9 @@ dependencies = [
  "bevy_axon_derive",
  "bevy_renet",
  "serde",
+ "serde_bytes",
  "serde_json",
+ "serde_sbin",
 ]
 
 [[package]]
@@ -1660,6 +1663,13 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "serde_sbin"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

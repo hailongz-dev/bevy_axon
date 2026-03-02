@@ -1,10 +1,10 @@
+use core::fmt::{self, Debug};
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::ser::{
     SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
     SerializeTupleStruct, SerializeTupleVariant,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::fmt;
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -84,7 +84,7 @@ pub fn axon_event_derive(input: TokenStream) -> TokenStream {
                 HASH
             }
             fn axon_event_invoke(bytes: &[u8],  commands: &mut ::bevy::prelude::Commands<'_, '_>) {
-                let event = crate::sbin::from_bytes::<Self>(bytes).unwrap();
+                let event = ::serde_sbin::from_bytes::<Self>(bytes).unwrap();
                 commands.trigger(event);
             }
         }

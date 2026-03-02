@@ -7,7 +7,7 @@ use std::time::{Duration, Instant, SystemTime};
 
 fn on_raw_data(bytes: &[u8]) {
     println!("raw data: {:?}", bytes.len());
-    let mut deserializer = bevy_axon::sbin::SbinDeserializer::from_bytes(bytes);
+    let mut deserializer = serde_sbin::SbinDeserializer::from_bytes(bytes);
     loop {
         let act:Result<u8, _> = Deserialize::deserialize(&mut deserializer);
         if let Ok(act) = act {

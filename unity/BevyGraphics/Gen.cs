@@ -10,6 +10,17 @@ namespace BevyGraphics {
 		public float y;
 		public float z;
 	}
+	[Bevy.BevyVariant(301091517)]
+	[System.Serializable]
+	public class MovePosition {
+		[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
+		private static void Initialize() {
+			Bevy.BevyClient.AddType(301091517,typeof(MovePosition));
+		}
+		public float x;
+		public float y;
+		public float z;
+	}
 	[Bevy.BevyVariant(1603518625)]
 	[System.Serializable]
 	public class Rotation {
@@ -31,6 +42,28 @@ namespace BevyGraphics {
 		public float x;
 		public float y;
 		public float z;
+	}
+	[Bevy.BevyVariant(106184556)]
+	[System.Serializable]
+	public class Size {
+		[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
+		private static void Initialize() {
+			Bevy.BevyClient.AddType(106184556,typeof(Size));
+		}
+		public float w;
+		public float h;
+	}
+	[Bevy.BevyVariant(3485316432)]
+	[System.Serializable]
+	public class Color {
+		[UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
+		private static void Initialize() {
+			Bevy.BevyClient.AddType(3485316432,typeof(Color));
+		}
+		public float r;
+		public float g;
+		public float b;
+		public float a;
 	}
 	[Bevy.BevyVariant(974863171)]
 	[System.Serializable]
@@ -56,16 +89,12 @@ namespace BevyGraphics {
 		public int width;
 		public int height;
 		public float size;
+		public uint[] skin;
 		public Layer[] layers;
 		[System.Serializable]
 		public struct Layer {
 			public int index;
-			public Tile[] tiles;
-			[System.Serializable]
-			public struct Tile {
-				public uint skin;
-				public uint flags;
-			}
+			public byte[] tiles;
 		}
 	}
 	[Bevy.BevyVariant(3683072690)]

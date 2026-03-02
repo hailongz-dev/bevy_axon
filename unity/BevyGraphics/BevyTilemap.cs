@@ -40,7 +40,7 @@ namespace BevyGraphics
                 var layer = value.layers[i];
                 var view = i < _layers.Count ? _layers[i] : CreateLayer(_layers);
                 var viewRenderer = view.GetComponent<UnityEngine.Tilemaps.TilemapRenderer>();
-                if (!viewRenderer)
+                if (viewRenderer)
                 {
                     viewRenderer.sortingLayerID = layer.index;
                 }
@@ -52,13 +52,14 @@ namespace BevyGraphics
                     var x = j % value.width;
                     var y = j / value.width;
 
-                    var tileData = layer.tiles[j];
-
+                    var t = layer.tiles[j];
+                    var s = t < value.skin.Length ? value.skin[t] : 0;
+                    
                     var p = new Vector3Int(x, y, 0);
 
                     if (_skinProvider)
                     {
-                        var skin = _skinProvider.GetSkin(tileData.skin);
+                        var skin = _skinProvider.GetSkin(s);
                         if (skin != null && skin.tile)
                         {
                             view.SetTile(p, skin.tile);

@@ -1,5 +1,5 @@
 use crate::core::*;
-use crate::sbin::SbinSerializer;
+use serde_sbin::SbinSerializer;
 use bevy::prelude::*;
 use bevy_renet::netcode::{NetcodeServerTransport, ServerAuthentication, ServerConfig};
 use bevy_renet::renet::{ConnectionConfig, DefaultChannel, ServerEvent};

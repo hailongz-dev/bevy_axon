@@ -174,13 +174,14 @@ version = "0.1.1"
 dependencies = [
  "bevy",
  "bevy_renet",
- "memchr",
  "serde",
+ "serde_bytes",
+ "serde_sbin",
 ]
 
 [[package]]
 name = "bevy_axon_derive"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -892,7 +893,7 @@ dependencies = [
  "bevy_renet",
  "rand 0.8.5",
  "serde",
- "serde_json",
+ "serde_sbin",
 ]
 
 [[package]]
@@ -1517,6 +1518,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_bytes"
+version = "0.11.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5d440709e79d88e51ac01c4b72fc6cb7314017bb7da9eeff678aa94c10e3ea8"
+dependencies = [
+ "serde",
+ "serde_core",
+]
+
+[[package]]
 name = "serde_core"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1547,6 +1558,13 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "serde_sbin"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

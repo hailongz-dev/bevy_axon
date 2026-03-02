@@ -14,7 +14,7 @@ namespace BevyEditor
             window.titleContent = new GUIContent("Bevy");
             window.Show();
         }
-        
+
         [MenuItem("Window/Run Sbin Tests")]
         private static void RunTests()
         {
@@ -89,6 +89,8 @@ namespace BevyEditor
                     return "bool";
                 case "String":
                     return "string";
+                case "ByteBuf":
+                    return "byte[]";
                 default:
                     return type;
             }

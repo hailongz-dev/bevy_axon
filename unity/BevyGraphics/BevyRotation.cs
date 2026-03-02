@@ -7,7 +7,7 @@ namespace BevyGraphics
     {
         protected override void OnValueChanged(Rotation value)
         {
-            transform.localRotation = Quaternion.LookRotation(new Vector3(value.x, value.y, value.z));
+            transform.localRotation = Quaternion.Euler(value.x, value.y, value.z);
         }
     }
 }
